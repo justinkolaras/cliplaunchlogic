@@ -1,5 +1,7 @@
+'use strict';
+
 function normalizeText_(v) {
-  return String(v == null ? '' : v).trim().toLowerCase();
+  return String(v ?? '').trim().toLowerCase();
 }
 
 function isBlank_(v) {
@@ -7,31 +9,40 @@ function isBlank_(v) {
 }
 
 function normalizeSheetDate_(value) {
-  var d = null;
-  if (value instanceof Date && !isNaN(value)) d = new Date(value);
-  else if (typeof value === 'string') {
-    var parsed = new Date(value);
-    if (!isNaN(parsed)) d = parsed;
+  let d = null;
+
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    d = new Date(value);
+  } else if (typeof value === 'string') {
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) d = parsed;
   }
+
   if (!d) return null;
+
   if (d.getFullYear() < 1950) d.setFullYear(d.getFullYear() + 100);
+
   d.setHours(0, 0, 0, 0);
   return d;
 }
 
 function sameCellValue_(a, b) {
   if (a instanceof Date && b instanceof Date) return a.getTime() === b.getTime();
-  return (a == null ? '' : a) === (b == null ? '' : b);
+  return String(a ?? '') === String(b ?? '');
 }
 
 function addMonths_(date, months) {
-  var d = new Date(date);
-  var day = d.getDate();
+  const d = new Date(date);
+  const day = d.getDate();
   d.setMonth(d.getMonth() + months);
   if (d.getDate() < day) d.setDate(0);
   return d;
 }
 
 function safeGetSpreadsheetUrl_(ss) {
-  try { return ss.getUrl(); } catch (err) { return null; }
+  try {
+    return ss.getUrl();
+  } catch (_) {
+    return null;
+  }
 }

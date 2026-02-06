@@ -1,43 +1,45 @@
+'use strict';
+
 function processRow_(sheet, row, editedColumn, ctx) {
   if (!ctx) ctx = { lastCol: sheet.getLastColumn(), notesCol: getNotesColIndex_(sheet) };
 
-  var block = sheet.getRange(row, CFG.COL_STATUS, 1, 4).getValues()[0];
-  var status0 = block[0];
-  var initial0 = block[1];
-  var followFlag0 = block[2];
-  var follow0 = block[3];
+  const block = sheet.getRange(row, CFG.COL_STATUS, 1, 4).getValues()[0];
+  const status0 = block[0];
+  const initial0 = block[1];
+  const followFlag0 = block[2];
+  const follow0 = block[3];
 
-  var status = status0;
-  var followFlag = followFlag0;
-  var followObj = follow0;
+  let status = status0;
+  let followFlag = followFlag0;
+  let followObj = follow0;
 
-  var initialDateNormalized = normalizeSheetDate_(initial0);
+  const initialDateNormalized = normalizeSheetDate_(initial0);
 
-  var today = new Date();
+  const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   if (editedColumn === CFG.COL_INITIAL) {
     if (initialDateNormalized) {
-      var followDate = new Date(initialDateNormalized);
+      const followDate = new Date(initialDateNormalized);
       followDate.setDate(followDate.getDate() + 2);
       followDate.setHours(0, 0, 0, 0);
       followObj = followDate;
-      followFlag = (status === 'Sent') ? 'Wait' : '';
+      followFlag = status === 'Sent' ? 'Wait' : '';
     } else {
       followFlag = '';
       followObj = '';
     }
   }
 
-  if (String(status || '').trim() === 'Responded') {
+  if (String(status ?? '').trim() === 'Responded') {
     followFlag = 'Not needed';
   }
 
-  var followDateObj = normalizeSheetDate_(followObj);
-  var hasValidFollowDate = !!followDateObj;
+  const followDateObj = normalizeSheetDate_(followObj);
+  const hasValidFollowDate = Boolean(followDateObj);
   if (hasValidFollowDate) followObj = followDateObj;
 
-  if (status === 'Sent' && hasValidFollowDate && (!followFlag || followFlag === '')) {
+  if (status === 'Sent' && hasValidFollowDate && !String(followFlag ?? '').trim()) {
     followFlag = 'Wait';
   }
 
@@ -53,11 +55,11 @@ function processRow_(sheet, row, editedColumn, ctx) {
   }
 
   if (initialDateNormalized) {
-    var initialDate = new Date(initialDateNormalized);
+    const initialDate = new Date(initialDateNormalized);
     initialDate.setHours(0, 0, 0, 0);
 
-    var threeMonths = addMonths_(initialDate, 3);
-    var sixMonths = addMonths_(initialDate, 6);
+    const threeMonths = addMonths_(initialDate, 3);
+    const sixMonths = addMonths_(initialDate, 6);
     threeMonths.setHours(0, 0, 0, 0);
     sixMonths.setHours(0, 0, 0, 0);
 
@@ -72,45 +74,48 @@ function processRow_(sheet, row, editedColumn, ctx) {
 
   if (status !== status0) sheet.getRange(row, CFG.COL_STATUS).setValue(status);
 
-  if (String(followFlag || '') !== String(followFlag0 || '')) {
-    var cellFF = sheet.getRange(row, CFG.COL_FOLLOW_FLAG);
+  if (String(followFlag ?? '') !== String(followFlag0 ?? '')) {
+    const cellFF = sheet.getRange(row, CFG.COL_FOLLOW_FLAG);
     if (!followFlag) cellFF.clearContent();
     else cellFF.setValue(followFlag);
   }
 
   if (!sameCellValue_(followObj, follow0)) {
-    var cellFD = sheet.getRange(row, CFG.COL_FOLLOW_DATE);
+    const cellFD = sheet.getRange(row, CFG.COL_FOLLOW_DATE);
     if (!followObj) cellFD.clearContent();
     else cellFD.setValue(followObj);
   }
 
-  var isFlagged = readAndApplyFlagFromNotes_(sheet, row, ctx.notesCol);
+  const isFlagged = readAndApplyFlagFromNotes_(sheet, row, ctx.notesCol);
 
-  var rowRange = sheet.getRange(row, 1, 1, ctx.lastCol);
+  const rowRange = sheet.getRange(row, 1, 1, ctx.lastCol);
 
   if (isFlagged) {
     rowRange.setBackground(CFG.COLORS.FLAG);
     return;
   }
 
-  var barType = getBarType_(status, followFlag);
+  const barType = getBarType_(status, followFlag);
   applyRowBar_(rowRange, barType);
 }
 
 function getBarType_(status, followFlag) {
-  var s = normalizeText_(status);
-  var f = normalizeText_(followFlag);
+  const s = normalizeText_(status);
+  const f = normalizeText_(followFlag);
 
   if (s === 'sale') return 'green';
   if (s === 'responded' || s === 'offer provided, awaiting') return 'orange';
 
-  if (f === 'follow up now' || f === 'consider again (3 months)' || s === 'consider again (3 months)') return 'yellow';
+  if (f === 'follow up now' || f === 'consider again (3 months)' || s === 'consider again (3 months)') {
+    return 'yellow';
+  }
 
   return null;
 }
 
 function applyRowBar_(rowRange, barType) {
-  var desired = null;
+  let desired = null;
+
   if (barType === 'orange') desired = CFG.COLORS.ORANGE;
   else if (barType === 'yellow') desired = CFG.COLORS.YELLOW;
   else if (barType === 'green') desired = CFG.COLORS.GREEN;
@@ -120,14 +125,19 @@ function applyRowBar_(rowRange, barType) {
     return;
   }
 
-  var bgs = rowRange.getBackgrounds();
-  var flat = bgs[0] || [];
+  const bgs = rowRange.getBackgrounds();
+  const flat = bgs[0] ?? [];
   if (!flat.length) return;
 
-  var first = flat[0];
-  for (var i = 1; i < flat.length; i++) if (flat[i] !== first) return;
+  const first = flat[0];
+  for (let i = 1; i < flat.length; i++) if (flat[i] !== first) return;
 
-  if (first === CFG.COLORS.ORANGE || first === CFG.COLORS.YELLOW || first === CFG.COLORS.GREEN || first === CFG.COLORS.FLAG) {
+  if (
+    first === CFG.COLORS.ORANGE ||
+    first === CFG.COLORS.YELLOW ||
+    first === CFG.COLORS.GREEN ||
+    first === CFG.COLORS.FLAG
+  ) {
     rowRange.setBackground(CFG.COLORS.RESET);
   }
 }

@@ -1,39 +1,48 @@
+'use strict';
+
 function getSeparatorColorFromMainRow7_(mainSheet, mainLastCol) {
   try {
-    var vals = mainSheet.getRange(7, 1, 1, mainLastCol).getValues()[0];
-    for (var i = 0; i < vals.length; i++) if (!isBlank_(vals[i])) return null;
-
-    var bgs = mainSheet.getRange(7, 1, 1, mainLastCol).getBackgrounds()[0];
-    var counts = {};
-    for (var j = 0; j < bgs.length; j++) {
-      var lc = String(bgs[j]).toLowerCase();
-      if (!lc || lc === '#ffffff' || lc === '#fff') continue;
-      counts[lc] = (counts[lc] || 0) + 1;
+    const vals = mainSheet.getRange(7, 1, 1, mainLastCol).getValues()[0];
+    for (let i = 0; i < vals.length; i++) {
+      if (!isBlank_(vals[i])) return null;
     }
 
-    var best = null;
-    var bestN = 0;
-    for (var k in counts) {
-      if (counts[k] > bestN) {
-        bestN = counts[k];
-        best = k;
+    const bgs = mainSheet.getRange(7, 1, 1, mainLastCol).getBackgrounds()[0];
+    const counts = Object.create(null);
+
+    for (let j = 0; j < bgs.length; j++) {
+      const lc = String(bgs[j] ?? '').toLowerCase();
+      if (!lc || lc === '#ffffff' || lc === '#fff') continue;
+      counts[lc] = (counts[lc] ?? 0) + 1;
+    }
+
+    let best = null;
+    let bestN = 0;
+
+    for (const [color, n] of Object.entries(counts)) {
+      if (n > bestN) {
+        bestN = n;
+        best = color;
       }
     }
+
     return best || null;
-  } catch (err) {
+  } catch (_) {
     return null;
   }
 }
 
 function isSeparatorRow_(rowVals, bgRow, sepColor) {
-  for (var i = 0; i < rowVals.length; i++) if (!isBlank_(rowVals[i])) return false;
+  for (let i = 0; i < rowVals.length; i++) {
+    if (!isBlank_(rowVals[i])) return false;
+  }
 
-  var target = String(sepColor).toLowerCase();
-  var hits = 0;
-  var total = 0;
+  const target = String(sepColor ?? '').toLowerCase();
+  let hits = 0;
+  let total = 0;
 
-  for (var j = 0; j < bgRow.length; j++) {
-    var lc = String(bgRow[j]).toLowerCase();
+  for (let j = 0; j < bgRow.length; j++) {
+    const lc = String(bgRow[j] ?? '').toLowerCase();
     if (!lc || lc === '#ffffff' || lc === '#fff') continue;
     total++;
     if (lc === target) hits++;
