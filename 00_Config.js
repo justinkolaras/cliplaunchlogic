@@ -3,6 +3,7 @@
 const CFG = Object.freeze({
   MAIN_NAMES: Object.freeze(['Main', 'MAIN']),
   URGENT_NAME: 'URGENT',
+  AFQ_LOG_NAMES: Object.freeze(['A/FQ Log', 'AFQ Log', 'AFQ LOG']),
 
   COL_STATUS: 3,
   COL_INITIAL: 4,

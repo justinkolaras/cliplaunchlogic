@@ -33,6 +33,10 @@ function stripFlagCommand_(s) {
   return String(s ?? '').replace(/^\s*!flag(\s+|$)/i, '');
 }
 
+function isUnflagCommand_(s) {
+  return /^\s*!unflag(\s+|$)/i.test(String(s ?? ''));
+}
+
 function hasFlagToken_(note) {
   const token = CFG.TOKENS.FLAG_NOTE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return new RegExp(`\\b${token}\\b`).test(String(note ?? ''));
@@ -44,6 +48,27 @@ function ensureFlagToken_(range) {
   range.setNote((current ? `${current}\n` : '') + CFG.TOKENS.FLAG_NOTE);
 }
 
+function removeFlagToken_(range) {
+  const current = String(range.getNote() ?? '');
+  if (!hasFlagToken_(current)) return;
+
+  const token = CFG.TOKENS.FLAG_NOTE;
+  const filtered = current
+    .split('\n')
+    .map((line) => String(line ?? '').trim())
+    .filter((line) => line && line !== token);
+
+  range.setNote(filtered.join('\n'));
+}
+
+function setFlaggedRichText_(cell, reason) {
+  const reasonText = String(reason ?? '').trim();
+  const text = reasonText ? `FLAGGED ${reasonText}` : 'FLAGGED';
+  const style = SpreadsheetApp.newTextStyle().setBold(true).build();
+  const rich = SpreadsheetApp.newRichTextValue().setText(text).setTextStyle(0, 7, style).build();
+  cell.setRichTextValue(rich);
+}
+
 function readAndApplyFlagFromNotes_(sheet, row, notesCol) {
   if (!notesCol) return false;
 
@@ -51,9 +76,15 @@ function readAndApplyFlagFromNotes_(sheet, row, notesCol) {
   const value = String(cell.getValue() ?? '');
   const note = String(cell.getNote() ?? '');
 
+  if (isUnflagCommand_(value)) {
+    cell.clearContent();
+    removeFlagToken_(cell);
+    return false;
+  }
+
   if (isFlagCommand_(value)) {
-    const cleaned = stripFlagCommand_(value);
-    if (cleaned !== value) cell.setValue(cleaned);
+    const reason = stripFlagCommand_(value).trim();
+    setFlaggedRichText_(cell, reason);
     ensureFlagToken_(cell);
     return true;
   }
